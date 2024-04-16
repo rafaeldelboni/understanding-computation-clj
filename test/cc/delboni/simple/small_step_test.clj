@@ -1,6 +1,7 @@
 (ns cc.delboni.simple.small-step-test
   (:require [cc.delboni.simple.small-step :refer [->Add ->Multiply ->Numeric
-                                                  -reduce -reducible?]]
+                                                  -reduce -reducible?
+                                                  machine->run]]
             [clojure.test :refer [deftest is testing]]))
 
 (deftest str-test
@@ -32,8 +33,8 @@
 
     (is (= true
            (-reducible? (->Add
-                        (->Multiply (->Numeric 1) (->Numeric 2))
-                        (->Multiply (->Numeric 3) (->Numeric 4))))))))
+                         (->Multiply (->Numeric 1) (->Numeric 2))
+                         (->Multiply (->Numeric 3) (->Numeric 4))))))))
 
 (deftest reduce-test
   (testing "reducible? definition should work."
@@ -69,3 +70,12 @@
                -reduce
                -reduce
                str)))))
+
+(deftest machine-test
+  (testing "machine->run should loop through all expression and reduce"
+    (is (= #cc.delboni.simple.small_step.Numeric{:value 14}
+           (machine->run (->Add
+                          (->Multiply (->Numeric 1) (->Numeric 2))
+                          (->Multiply (->Numeric 3) (->Numeric 4))))))))
+
+

@@ -45,3 +45,10 @@
       (-reducible? left) (->Multiply (-reduce left) right)
       (-reducible? right) (->Multiply left (-reduce right))
       :else (->Numeric (* (:value left) (:value right))))))
+
+(defn machine->run [expressions]
+  (loop [expression expressions]
+    (prn (str expression))
+    (if-not (-reducible? expression)
+      expression
+      (recur (-reduce expression)))))
