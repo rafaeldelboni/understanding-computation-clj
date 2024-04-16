@@ -12,6 +12,13 @@ Run the project, overriding the name to be greeted:
     $ clojure -M:run Via-Main
     Hello, Via-Main!
 
+
+## Run Tests
+To run tests inside `./test`
+```bash
+clj -M:test
+```
+
 ## License
 This is free and unencumbered software released into the public domain.  
 For more information, please refer to <http://unlicense.org>
