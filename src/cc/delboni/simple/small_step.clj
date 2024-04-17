@@ -8,7 +8,7 @@
   (-reduce [_] [_ environment]
     "Expression uses left-to-right evaluation to reduce its arguments."))
 
-; Types
+; Expression
 (defrecord Numeric [value]
   Object
   (toString [_]
@@ -24,6 +24,21 @@
 
   Expression
   (-reducible? [_] false))
+
+(defrecord Variable [var-name]
+  Object
+  (toString [_]
+    (name var-name))
+
+  Expression
+  (-reducible? [_] true)
+
+  Reducible
+  (-reduce [this]
+    (-reduce this {}))
+
+  (-reduce [_ environment]
+    (get environment var-name)))
 
 ; Operations
 (defrecord Add [left right]
@@ -80,10 +95,19 @@
       (-reducible? right) (->LessThan left (-reduce right environment))
       :else (->Bool (< (:value left) (:value right))))))
 
-(defrecord Variable [var-name]
+; Statements
+(defrecord DoNothing []
   Object
   (toString [_]
-    (str var-name))
+    (str "do-nothing"))
+
+  Expression
+  (-reducible? [_] false))
+
+(defrecord Assign [var-name expression]
+  Object
+  (toString [_]
+    (str (name var-name) " = " expression))
 
   Expression
   (-reducible? [_] true)
@@ -93,11 +117,16 @@
     (-reduce this {}))
 
   (-reduce [_ environment]
-    (get environment var-name)))
+    (if (-reducible? expression)
+      [(->Assign var-name (-reduce expression environment)) environment]
+      [(->DoNothing) (assoc environment var-name expression)])))
 
-(defn machine->run [expressions environment]
-  (loop [expression expressions]
-    (prn (str expression))
-    (if-not (-reducible? expression)
-      expression
-      (recur (-reduce expression environment)))))
+(defn machine->run [statements environment]
+  (loop [current-statement statements
+         current-environment environment]
+    (prn (str current-statement ", " current-environment))
+    (if-not (-reducible? current-statement)
+      [current-statement current-environment]
+      (let [[reduced-statement updated-enviroment] (-reduce current-statement
+                                                            current-environment)]
+        (recur reduced-statement updated-enviroment)))))

@@ -1,5 +1,6 @@
 (ns cc.delboni.simple.small-step-test
-  (:require [cc.delboni.simple.small-step :refer [->Add ->LessThan ->Multiply
+  (:require [cc.delboni.simple.small-step :refer [->Add ->Assign ->DoNothing
+                                                  ->LessThan ->Multiply
                                                   ->Numeric ->Variable -reduce
                                                   -reducible? machine->run]]
             [clojure.test :refer [deftest is testing]]))
@@ -37,7 +38,13 @@
     (is (= true
            (-reducible? (->Add
                          (->Multiply (->Numeric 1) (->Numeric 2))
-                         (->Multiply (->Numeric 3) (->Numeric 4))))))))
+                         (->Multiply (->Numeric 3) (->Numeric 4))))))
+
+    (is (= false
+           (-reducible? (->DoNothing))))
+
+    (is (= true
+           (-reducible? (->Assign :x (->Numeric 5)))))))
 
 (deftest reduce-test
   (testing "reducible? definition should work."
@@ -92,26 +99,51 @@
     (is (= "5"
            (-> (->Variable :x)
                (-reduce {:x (->Numeric 5)})
+               str)))
+
+    (is (= "do-nothing"
+           (-> (->DoNothing)
+               str)))
+
+    (is (= "x = x + 1"
+           (-> (->Assign :x (->Add (->Variable :x) (->Numeric 1)))
                str)))))
 
 (deftest machine-test
   (testing "machine->run should loop through all expression and reduce without environment"
-    (is (= #cc.delboni.simple.small_step.Numeric{:value 14}
-           (machine->run (->Add
-                          (->Multiply (->Numeric 1) (->Numeric 2))
-                          (->Multiply (->Numeric 3) (->Numeric 4)))
-                         {})))
+    (is (= 14
+           (-> (machine->run
+                (->Assign :result (->Add
+                                   (->Multiply (->Numeric 1) (->Numeric 2))
+                                   (->Multiply (->Numeric 3) (->Numeric 4))))
+                {})
+               last
+               :result
+               :value)))
 
-    (is (= #cc.delboni.simple.small_step.Bool{:value false}
-           (machine->run (->LessThan
-                          (->Numeric 5)
-                          (->Add (->Numeric 2) (->Numeric 2)))
-                         {}))))
+    (is (= false
+           (-> (machine->run
+                (->Assign :result (->LessThan
+                                   (->Numeric 5)
+                                   (->Add (->Numeric 2) (->Numeric 2))))
+                {})
+               last
+               :result
+               :value))))
 
   (testing "machine->run should loop through all expression and reduce with environment"
-    (is (= #cc.delboni.simple.small_step.Numeric{:value 7}
-           (machine->run (->Add
-                          (->Variable :x)
-                          (->Variable :y))
+    (is (= [#cc.delboni.simple.small_step.DoNothing{}
+            {:x #cc.delboni.simple.small_step.Numeric{:value 3}
+             :y #cc.delboni.simple.small_step.Numeric{:value 4}
+             :result #cc.delboni.simple.small_step.Numeric{:value 7}}]
+           (machine->run (->Assign :result (->Add
+                                            (->Variable :x)
+                                            (->Variable :y)))
                          {:x (->Numeric 3)
-                          :y (->Numeric 4)})))))
+                          :y (->Numeric 4)}))))
+
+  (testing "Assign new value to variable"
+    (is (= [#cc.delboni.simple.small_step.DoNothing{}
+            {:x #cc.delboni.simple.small_step.Numeric{:value 3}}]
+           (machine->run (->Assign :x (->Add (->Variable :x) (->Numeric 1)))
+                         {:x (->Numeric 2)})))))
