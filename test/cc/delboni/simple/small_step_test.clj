@@ -1,7 +1,8 @@
 (ns cc.delboni.simple.small-step-test
-  (:require [cc.delboni.simple.small-step :refer [->Add ->Assign ->DoNothing
-                                                  ->LessThan ->Multiply
-                                                  ->Numeric ->Variable -reduce
+  (:require [cc.delboni.simple.small-step :refer [->Add ->Assign ->Bool ->DoNothing
+                                                  ->If ->LessThan ->Multiply
+                                                  ->Numeric ->Variable
+                                                  ->Sequence -reduce
                                                   -reducible? machine->run]]
             [clojure.test :refer [deftest is testing]]))
 
@@ -21,8 +22,25 @@
                  (->Multiply (->Numeric 1) (->Numeric 2))
                  (->Multiply (->Numeric 3) (->Numeric 4))))))
 
+    (is (= "true"
+           (str (->Bool true))))
+
     (is (= "1 < 2"
-           (str (->LessThan (->Numeric 1) (->Numeric 2)))))))
+           (str (->LessThan (->Numeric 1) (->Numeric 2)))))
+
+    (is (= "do-nothing"
+           (-> (->DoNothing)
+               str)))
+
+    (is (= "x = x + 1"
+           (-> (->Assign :x (->Add (->Variable :x) (->Numeric 1)))
+               str)))
+
+    (is (= "if (x) { y = 1 } else { y = 2 }"
+           (-> (->If (->Variable :x)
+                     (->Assign :y (->Numeric 1))
+                     (->Assign :y (->Numeric 2)))
+               str)))))
 
 (deftest reducible?-test
   (testing "reducible? definition should work."
@@ -39,6 +57,9 @@
            (-reducible? (->Add
                          (->Multiply (->Numeric 1) (->Numeric 2))
                          (->Multiply (->Numeric 3) (->Numeric 4))))))
+
+    (is (= false
+           (-reducible? (->Bool true))))
 
     (is (= false
            (-reducible? (->DoNothing))))
@@ -101,13 +122,15 @@
                (-reduce {:x (->Numeric 5)})
                str)))
 
-    (is (= "do-nothing"
-           (-> (->DoNothing)
-               str)))
-
-    (is (= "x = x + 1"
-           (-> (->Assign :x (->Add (->Variable :x) (->Numeric 1)))
-               str)))))
+    (is (= {:x #cc.delboni.simple.small_step.Bool{:value true}
+            :y #cc.delboni.simple.small_step.Numeric{:value 1}}
+           (-> (->If (->Variable :x)
+                     (->Assign :y (->Numeric 1))
+                     (->Assign :y (->Numeric 2)))
+               (-reduce {:x (->Bool true)})
+               (as-> se (apply -reduce se))
+               (as-> se (apply -reduce se))
+               last)))))
 
 (deftest machine-test
   (testing "machine->run should loop through all expression and reduce without environment"
@@ -146,4 +169,37 @@
     (is (= [#cc.delboni.simple.small_step.DoNothing{}
             {:x #cc.delboni.simple.small_step.Numeric{:value 3}}]
            (machine->run (->Assign :x (->Add (->Variable :x) (->Numeric 1)))
-                         {:x (->Numeric 2)})))))
+                         {:x (->Numeric 2)}))))
+
+  (testing "If condition check"
+    (is (= [#cc.delboni.simple.small_step.DoNothing{}
+            {:x #cc.delboni.simple.small_step.Bool{:value true}
+             :y #cc.delboni.simple.small_step.Numeric{:value 1}}]
+           (machine->run (->If (->Variable :x)
+                               (->Assign :y (->Numeric 1))
+                               (->Assign :y (->Numeric 2)))
+                         {:x (->Bool true)})))
+
+    (is (= [#cc.delboni.simple.small_step.DoNothing{}
+            {:x #cc.delboni.simple.small_step.Bool{:value false}
+             :y #cc.delboni.simple.small_step.Numeric{:value 2}}]
+           (machine->run (->If (->Variable :x)
+                               (->Assign :y (->Numeric 1))
+                               (->Assign :y (->Numeric 2)))
+                         {:x (->Bool false)})))
+
+    (is (= [#cc.delboni.simple.small_step.DoNothing{}
+            {:x #cc.delboni.simple.small_step.Bool{:value false}}]
+           (machine->run (->If (->Variable :x)
+                               (->Assign :y (->Numeric 1))
+                               (->DoNothing))
+                         {:x (->Bool false)}))))
+
+  (testing "Checks Sequence statement"
+    (is (= [#cc.delboni.simple.small_step.DoNothing{}
+            {:x #cc.delboni.simple.small_step.Numeric{:value 2}
+             :y #cc.delboni.simple.small_step.Numeric{:value 5}}]
+           (machine->run (->Sequence
+                          (->Assign :x (->Add (->Numeric 1) (->Numeric 1)))
+                          (->Assign :y (->Add (->Variable :x) (->Numeric 3))))
+                         {})))))

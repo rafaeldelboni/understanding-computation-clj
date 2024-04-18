@@ -113,14 +113,43 @@
   (-reducible? [_] true)
 
   Reducible
-  (-reduce [this]
-    (-reduce this {}))
-
   (-reduce [_ environment]
     (if (-reducible? expression)
       [(->Assign var-name (-reduce expression environment)) environment]
       [(->DoNothing) (assoc environment var-name expression)])))
 
+(defrecord If [condition consequence alternative]
+  Object
+  (toString [_]
+    (str "if (" condition ") { " consequence " } else { " alternative " }"))
+
+  Expression
+  (-reducible? [_] true)
+
+  Reducible
+  (-reduce [_ environment]
+    (if (-reducible? condition)
+      [(->If (-reduce condition environment) consequence alternative) environment]
+      (case (:value condition)
+        true [consequence environment]
+        false [alternative environment]))))
+
+(defrecord Sequence [one two]
+  Object
+  (toString [_]
+    (str  one "; " two))
+
+  Expression
+  (-reducible? [_] true)
+
+  Reducible
+  (-reduce [_ environment]
+    (if (instance? DoNothing one)
+      [two environment]
+      (let [[reduced-one reduced-enviroment] (-reduce one environment)]
+        [(->Sequence reduced-one two) reduced-enviroment]))))
+
+; Machine
 (defn machine->run [statements environment]
   (loop [current-statement statements
          current-environment environment]
