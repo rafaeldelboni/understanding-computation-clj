@@ -137,7 +137,7 @@
 (defrecord Sequence [one two]
   Object
   (toString [_]
-    (str  one "; " two))
+    (str one "; " two))
 
   Expression
   (-reducible? [_] true)
@@ -148,6 +148,18 @@
       [two environment]
       (let [[reduced-one reduced-enviroment] (-reduce one environment)]
         [(->Sequence reduced-one two) reduced-enviroment]))))
+
+(defrecord While [condition body]
+  Object
+  (toString [_]
+    (str "while (" condition ") { " body " }"))
+
+  Expression
+  (-reducible? [_] true)
+
+  Reducible
+  (-reduce [self environment]
+    [(->If condition (->Sequence body self) (->DoNothing)) environment]))
 
 ; Machine
 (defn machine->run [statements environment]

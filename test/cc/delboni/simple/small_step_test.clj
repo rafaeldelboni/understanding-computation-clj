@@ -1,9 +1,10 @@
 (ns cc.delboni.simple.small-step-test
-  (:require [cc.delboni.simple.small-step :refer [->Add ->Assign ->Bool ->DoNothing
-                                                  ->If ->LessThan ->Multiply
-                                                  ->Numeric ->Variable
-                                                  ->Sequence -reduce
-                                                  -reducible? machine->run]]
+  (:require [cc.delboni.simple.small-step :refer [->Add ->Assign ->Bool
+                                                  ->DoNothing ->If ->LessThan
+                                                  ->Multiply ->Numeric
+                                                  ->Sequence ->Variable
+                                                  ->While -reduce -reducible?
+                                                  machine->run]]
             [clojure.test :refer [deftest is testing]]))
 
 (deftest str-test
@@ -202,4 +203,14 @@
            (machine->run (->Sequence
                           (->Assign :x (->Add (->Numeric 1) (->Numeric 1)))
                           (->Assign :y (->Add (->Variable :x) (->Numeric 3))))
-                         {})))))
+                         {}))))
+
+  (testing "Checks While statement"
+    (is (= [#cc.delboni.simple.small_step.DoNothing{}
+            {:x #cc.delboni.simple.small_step.Numeric{:value 9}}]
+           (machine->run (->While
+                          (->LessThan (->Variable :x) (->Numeric 5))
+                          (->Assign :x (->Multiply (->Variable :x) (->Numeric 3))))
+                         {:x (->Numeric 1)})))))
+
+
