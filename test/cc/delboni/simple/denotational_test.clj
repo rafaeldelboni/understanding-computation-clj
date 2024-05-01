@@ -1,7 +1,9 @@
 (ns cc.delboni.simple.denotational-test
-  (:require [cc.delboni.simple.denotational :refer [->Add ->Bool ->Bool ->clj
-                                                    ->LessThan ->Numeric ->Multiply
-                                                    ->Variable invoke]]
+  (:require [cc.delboni.simple.denotational :refer [->Add ->Assign ->Bool
+                                                    ->Bool ->clj ->DoNothing
+                                                    ->LessThan ->Multiply
+                                                    ->Numeric ->Variable
+                                                    ->If ->Sequence ->While invoke]]
             [clojure.test :refer [deftest is testing]]
             [matcher-combinators.test :refer [match?]]))
 
@@ -70,3 +72,59 @@
                     ->clj
                     eval
                     (invoke {:x 3}))))))
+
+(deftest statements-test
+  (testing "should evaluate statements and return updated environment"
+    (is (match? {:x 12}
+                (-> (->DoNothing)
+                    ->clj
+                    eval
+                    (invoke {:x 12}))))
+
+    (is (match? {:x false}
+                (-> (->Assign :x (->Bool false))
+                    ->clj
+                    eval
+                    (invoke {}))))
+
+    (is (match? {:x 2
+                 :y 5}
+                (-> (->Assign :y (->Add (->Variable :x) (->Numeric 3)))
+                    ->clj
+                    eval
+                    (invoke {:x 2}))))
+
+    (is (match? {:x 2
+                 :y 5}
+                (-> (->If (->LessThan (->Numeric 1) (->Numeric 3))
+                          (->Assign :y (->Add (->Variable :x) (->Numeric 3)))
+                          (->Assign :y (->Numeric 1)))
+                    ->clj
+                    eval
+                    (invoke {:x 2}))))
+
+    (is (match? {:x 2
+                 :y 1}
+                (-> (->If (->LessThan (->Numeric 4) (->Numeric 3))
+                          (->Assign :y (->Add (->Variable :x) (->Numeric 3)))
+                          (->Assign :y (->Numeric 1)))
+                    ->clj
+                    eval
+                    (invoke {:x 2}))))
+
+    (is (match? {:x 2
+                 :y 5}
+                (-> (->Sequence
+                     (->Assign :x (->Add (->Numeric 1) (->Numeric 1)))
+                     (->Assign :y (->Add (->Variable :x) (->Numeric 3))))
+                    ->clj
+                    eval
+                    (invoke {:x 0}))))
+
+    (is (match? {:x 9}
+                (-> (->While
+                     (->LessThan (->Variable :x) (->Numeric 5))
+                     (->Assign :x (->Multiply (->Variable :x) (->Numeric 3))))
+                    ->clj
+                    eval
+                    (invoke {:x 1}))))))

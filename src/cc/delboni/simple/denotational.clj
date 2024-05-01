@@ -48,32 +48,39 @@
           (-> ~right ->clj eval (invoke environment#))))))
 
 ; Statements
-; (defrecord DoNothing []
-;   Expression
-;   (evaluate [_ environment]
-;     environment))
-;
-; (defrecord Assign [var-name expression]
-;   Expression
-;   (evaluate [_ environment]
-;     (assoc environment var-name (evaluate expression environment))))
-;
-; (defrecord If [condition consequence alternative]
-;   Expression
-;   (evaluate [_ environment]
-;     (if (:value (evaluate condition environment))
-;       (evaluate consequence environment)
-;       (evaluate alternative environment))))
-;
-; (defrecord Sequence [one two]
-;   Expression
-;   (evaluate [_ environment]
-;     (evaluate two (evaluate one environment))))
-;
-; (defrecord While [condition body]
-;   Expression
-;   (evaluate [_ environment]
-;     (loop [env environment]
-;       (if-not (:value (evaluate condition env))
-;         env
-;         (recur (evaluate body env))))))
+(defrecord DoNothing []
+  Expression
+  (->clj [_]
+    `(fn [environment#]
+       environment#)))
+
+(defrecord Assign [var-name expression]
+  Expression
+  (->clj [_]
+    `(fn [environment#]
+       (assoc environment#
+              ~var-name (-> ~expression ->clj eval (invoke environment#))))))
+
+(defrecord If [condition consequence alternative]
+  Expression
+  (->clj [_]
+    `(fn [environment#]
+       (if (-> ~condition ->clj eval (invoke environment#))
+         (-> ~consequence ->clj eval (invoke environment#))
+         (-> ~alternative ->clj eval (invoke environment#))))))
+
+(defrecord Sequence [one two]
+  Expression
+  (->clj [_]
+    `(fn [environment#]
+       (let [evaluated-one# (-> ~one ->clj eval (invoke environment#))]
+         (-> ~two ->clj eval (invoke evaluated-one#))))))
+
+(defrecord While [condition body]
+  Expression
+  (->clj [_]
+    `(fn [environment#]
+       (loop [env# environment#]
+         (if-not (-> ~condition ->clj eval (invoke env#))
+           env#
+           (recur (-> ~body ->clj eval (invoke env#))))))))

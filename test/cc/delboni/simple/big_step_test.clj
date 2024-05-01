@@ -77,7 +77,7 @@
                 (evaluate (->Sequence
                            (->Assign :x (->Add (->Numeric 1) (->Numeric 1)))
                            (->Assign :y (->Add (->Variable :x) (->Numeric 3))))
-                          {:x (->Numeric 2)})))
+                          {:x (->Numeric 0)})))
 
     (is (match? {:x {:value 9}}
                 (evaluate (->While
