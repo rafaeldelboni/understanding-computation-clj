@@ -1,6 +1,7 @@
 (ns cc.delboni.simple-computers.dfa-test
-  (:require [cc.delboni.simple-computers.dfa :refer [->DFA ->DFARulebook
-                                                     ->FARule accepting?
+  (:require [cc.delboni.simple-computers.dfa :refer [->DFA ->DFADesign
+                                                     ->DFARulebook ->FARule
+                                                     accepting? accepts?
                                                      next-state read-char
                                                      read-str]]
             [clojure.test :refer [deftest is testing]]
@@ -58,3 +59,22 @@
                 (-> (->DFA 1 [3] rulebook)
                     (read-str "baaab")
                     accepting?)))))
+
+(deftest dfa-design-test
+  (testing "should create new dfa from start and read-str to put into a new state"
+    (let [dfa-design (->DFADesign 1 [3] rulebook)]
+      (is (match? false
+                  (accepts? dfa-design "a")))
+
+      (is (match? false
+                  (accepts? dfa-design "ba")))
+
+      (is (match? false
+                  (accepts? dfa-design "baa")))
+
+      (is (match? true
+                  (accepts? dfa-design "bab")))
+
+      (is (match? true
+                  (accepts? dfa-design "baba"))))))
+

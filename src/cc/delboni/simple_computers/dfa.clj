@@ -13,6 +13,10 @@
   (read-char [self character])
   (read-str [self string]))
 
+(defprotocol DFADesignProtocol
+  (to-dfa [self])
+  (accepts? [self string]))
+
 (defrecord FARule [state character next-state]
   Object
   (toString [_]
@@ -47,3 +51,13 @@
   (read-str [self string]
     (reduce
      (fn [acc cur] (read-char acc cur)) self (vec string))))
+
+(defrecord DFADesign [start-state accept-state rulebook]
+  DFADesignProtocol
+  (to-dfa [self]
+    (->DFA (:start-state self) (:accept-state self) (:rulebook self)))
+
+  (accepts? [self string]
+    (-> (to-dfa self)
+        (read-str string)
+        accepting?)))
