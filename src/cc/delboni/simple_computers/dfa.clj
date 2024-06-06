@@ -1,10 +1,7 @@
-(ns cc.delboni.simple-computers.dfa)
+(ns cc.delboni.simple-computers.dfa 
+  (:require [cc.delboni.simple-computers.fa :as fa]))
 
-(defprotocol Rule
-  (applies-to? [self state character])
-  (follow [self]))
-
-(defprotocol Rulebook
+(defprotocol DFARulebookProtocol
   (rule-for [self state character])
   (next-state [self state character]))
 
@@ -17,26 +14,14 @@
   (to-dfa [self])
   (accepts? [self string]))
 
-(defrecord FARule [state character next-state]
-  Object
-  (toString [_]
-    (format "(FARule %s --%s--> %s)" state character next-state))
-
-  Rule
-  (applies-to? [self state character]
-    (and (= (:state self) state)
-         (= (:character self) character)))
-
-  (follow [_] next-state))
-
 (defrecord DFARulebook [rules]
-  Rulebook
+  DFARulebookProtocol
   (rule-for [_ state character]
-    (some (fn [rule] (when (applies-to? rule state character) rule)) rules))
+    (some (fn [rule] (when (fa/applies-to? rule state character) rule)) rules))
 
   (next-state [this state character]
     (-> (rule-for this state character)
-        follow)))
+        fa/follow)))
 
 (defrecord DFA [current-state accept-states rulebook]
   DFAProtocol

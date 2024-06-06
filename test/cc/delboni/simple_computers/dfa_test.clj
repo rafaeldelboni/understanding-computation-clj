@@ -1,9 +1,11 @@
 (ns cc.delboni.simple-computers.dfa-test
   (:require [cc.delboni.simple-computers.dfa :refer [->DFA ->DFADesign
-                                                     ->DFARulebook ->FARule
+                                                     ->DFARulebook
+                                                     next-state
                                                      accepting? accepts?
-                                                     next-state read-char
+                                                     read-char
                                                      read-str]]
+            [cc.delboni.simple-computers.fa :refer [->FARule]]
             [clojure.test :refer [deftest is testing]]
             [matcher-combinators.test :refer [match?]]))
 
