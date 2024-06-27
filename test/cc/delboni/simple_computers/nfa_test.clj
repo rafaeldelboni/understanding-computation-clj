@@ -1,8 +1,9 @@
 (ns cc.delboni.simple-computers.nfa-test
   (:require [cc.delboni.simple-computers.fa :refer [->FARule]]
-            [cc.delboni.simple-computers.nfa :refer [->NFA ->NFARulebook
-                                                     ->NFADesign
-                                                     accepting? accepts?
+            [cc.delboni.simple-computers.nfa :refer [->NFA ->NFADesign
+                                                     ->NFARulebook accepting?
+                                                     accepts?
+                                                     follow-free-moves
                                                      next-states read-char
                                                      read-str]]
             [clojure.test :refer [deftest is testing]]
@@ -69,3 +70,39 @@
 
       (is (match? false
                   (accepts? nfa-design "bbabb"))))))
+
+(def free-moves-rulebook
+  (->NFARulebook
+   [(->FARule 1 nil 2) (->FARule 1 nil 4)
+    ; aa
+    (->FARule 2 \a 3)
+    (->FARule 3 \a 2)
+    ; aaa
+    (->FARule 4 \a 5)
+    (->FARule 5 \a 6)
+    (->FARule 6 \a 4)]))
+
+(deftest free-moves-next-states-test
+  (testing "should handle nil char as free-move indicator"
+    (is (match? #{2 4}
+                (next-states free-moves-rulebook #{1} nil)))))
+
+(deftest follow-free-moves-test
+  (testing "should recursively looking more states by following free move"
+    (is (match? #{1 2 4}
+                (follow-free-moves free-moves-rulebook #{1})))))
+
+(deftest free-moves-nfa-design-test
+  (testing "should supports free moves"
+    (let [nfa-design (->NFADesign 1 #{2 4} free-moves-rulebook)]
+      (is (match? true
+                  (accepts? nfa-design "aa")))
+
+      (is (match? true
+                  (accepts? nfa-design "aaa")))
+
+      (is (match? false
+                  (accepts? nfa-design "aaaaa")))
+
+      (is (match? true
+                  (accepts? nfa-design "aaaaaa"))))))

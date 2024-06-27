@@ -5,9 +5,11 @@
 (defprotocol NFARulebookProtocol
   (rules-for [self state character])
   (follow-rules-for [self state character])
-  (next-states [self states character]))
+  (next-states [self states character])
+  (follow-free-moves [self states]))
 
 (defprotocol NFAProtocol
+  (current-states [self])
   (accepting? [self])
   (read-char [self character])
   (read-str [self string]))
@@ -30,17 +32,26 @@
     (->> states
          (map (fn [state] (follow-rules-for this state character)))
          flatten
-         set)))
+         set))
 
-(defrecord NFA [current-states accept-states rulebook]
+  (follow-free-moves [this states]
+    (let [more-states (next-states this states nil)]
+      (if (set/subset? more-states states)
+        states
+        (follow-free-moves this (into states more-states))))))
+
+(defrecord NFA [initial-current-states accept-states rulebook]
   NFAProtocol
-  (accepting? [_]
-    (-> (set/intersection (set current-states) (set accept-states))
+  (current-states [_]
+    (set (follow-free-moves rulebook initial-current-states)))
+
+  (accepting? [self]
+    (-> (set/intersection (current-states self) (set accept-states))
         seq
         boolean))
 
   (read-char [self character]
-    (->NFA (next-states (:rulebook self) (set current-states) character)
+    (->NFA (next-states (:rulebook self) (current-states self) character)
            (:accept-states self)
            (:rulebook self)))
 
